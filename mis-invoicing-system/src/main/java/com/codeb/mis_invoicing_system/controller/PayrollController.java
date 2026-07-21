@@ -21,6 +21,14 @@ public class PayrollController {
         return payrollRepository.save(payroll);
     }
 
+    @PutMapping("/{id}")
+    public Payroll updatePayroll(@PathVariable Long id, @RequestBody Payroll updatedPayroll) {
+        Double netPay = updatedPayroll.getBasicSalary() - updatedPayroll.getDeductions();
+        updatedPayroll.setNetPay(netPay);
+        updatedPayroll.setId(id);
+        return payrollRepository.save(updatedPayroll);
+    }
+
     @GetMapping
     public List<Payroll> getAllPayroll() {
         return payrollRepository.findAll();
