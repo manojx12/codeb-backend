@@ -5,10 +5,14 @@ import com.codeb.mis_invoicing_system.entity.User;
 import com.codeb.mis_invoicing_system.repository.UserRepository;
 import com.codeb.mis_invoicing_system.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,8 +33,19 @@ public class UserController {
     @Autowired
     private EmailService emailService;
 
+    // Naya: frontend ka URL, redirect ke liye
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
+
+        // Naya: email already registered hai to yahin rok do, DB crash hone se pehle
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("This email is already registered. Please login or use forgot password.");
+        }
+
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
 
         String token = UUID.randomUUID().toString();
@@ -49,7 +64,10 @@ public class UserController {
         Optional<User> userOptional = userRepository.findByVerificationToken(token);
 
         if (userOptional.isEmpty()) {
-            return ResponseEntity.status(400).body("Invalid or expired verification link");
+            // Naya: invalid token pe bhi frontend login page pe redirect, error query param ke saath
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create(frontendUrl + "/login?verified=false"))
+                    .build();
         }
 
         User user = userOptional.get();
@@ -57,7 +75,10 @@ public class UserController {
         user.setVerificationToken(null);
         userRepository.save(user);
 
-        return ResponseEntity.ok("Email verified successfully! You can now log in.");
+        // Naya: success pe frontend login page pe redirect, success query param ke saath
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(frontendUrl + "/login?verified=true"))
+                .build();
     }
 
     @PostMapping("/login")

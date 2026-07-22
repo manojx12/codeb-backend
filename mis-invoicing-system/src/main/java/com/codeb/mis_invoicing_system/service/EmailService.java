@@ -1,6 +1,7 @@
 package com.codeb.mis_invoicing_system.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -11,8 +12,11 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Value("${app.backend.url}")
+    private String backendUrl;
+
     public void sendVerificationEmail(String toEmail, String token) {
-        String verificationLink = "http://localhost:8080/api/auth/verify?token=" + token;
+        String verificationLink = backendUrl + "/api/auth/verify?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
@@ -23,7 +27,7 @@ public class EmailService {
     }
 
     public void sendResetPasswordEmail(String toEmail, String token) {
-        String resetLink = "http://localhost:8080/api/auth/reset-password?token=" + token;
+        String resetLink = backendUrl + "/api/auth/reset-password?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
