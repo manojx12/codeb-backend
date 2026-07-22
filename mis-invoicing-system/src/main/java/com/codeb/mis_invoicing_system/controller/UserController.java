@@ -31,22 +31,19 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
 
-        // Naya: verification token generate karo aur user ke saath save karo
         String token = UUID.randomUUID().toString();
         user.setVerificationToken(token);
         user.setEmailVerified(false);
 
         userRepository.save(user);
 
-        // Naya: verification email bhejo
         emailService.sendVerificationEmail(user.getEmail(), token);
 
         return ResponseEntity.ok("Registration successful. Please check your email to verify your account.");
     }
 
-    // Naya endpoint: email verify karne ke liye
     @GetMapping("/verify")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         Optional<User> userOptional = userRepository.findByVerificationToken(token);
@@ -57,7 +54,7 @@ public class UserController {
 
         User user = userOptional.get();
         user.setEmailVerified(true);
-        user.setVerificationToken(null); // token ab use ho chuka, clear kar do
+        user.setVerificationToken(null);
         userRepository.save(user);
 
         return ResponseEntity.ok("Email verified successfully! You can now log in.");
@@ -74,13 +71,12 @@ public class UserController {
 
         User user = userOptional.get();
 
-        boolean passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword());
+        boolean passwordMatches = passwordEncoder.matches(loginRequest.getPasswordHash(), user.getPasswordHash());
 
         if (!passwordMatches) {
             return ResponseEntity.status(401).body("Invalid email or password");
         }
 
-        // Naya: email verify hui ya nahi check karo
         if (!user.isEmailVerified()) {
             return ResponseEntity.status(403).body("Please verify your email before logging in");
         }
@@ -88,10 +84,11 @@ public class UserController {
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
         return ResponseEntity.ok(Map.of(
                 "token", token,
-                "name", user.getName(),
+                "name", user.getFullName(),
                 "role", user.getRole()
         ));
     }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
@@ -129,7 +126,7 @@ public class UserController {
         }
 
         String newPassword = request.get("newPassword");
-        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
         userRepository.save(user);
