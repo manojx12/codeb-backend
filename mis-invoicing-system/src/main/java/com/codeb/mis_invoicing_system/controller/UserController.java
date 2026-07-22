@@ -64,9 +64,9 @@ public class UserController {
         Optional<User> userOptional = userRepository.findByVerificationToken(token);
 
         if (userOptional.isEmpty()) {
-            // Naya: invalid token pe bhi frontend login page pe redirect, error query param ke saath
+            // Invalid token pe bhi seedha login page pe redirect
             return ResponseEntity.status(HttpStatus.FOUND)
-                    .location(URI.create(frontendUrl + "/login?verified=false"))
+                    .location(URI.create(frontendUrl + "/login"))
                     .build();
         }
 
@@ -75,9 +75,9 @@ public class UserController {
         user.setVerificationToken(null);
         userRepository.save(user);
 
-        // Naya: success pe frontend login page pe redirect, success query param ke saath
+        // Success pe seedha login page pe redirect
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(frontendUrl + "/login?verified=true"))
+                .location(URI.create(frontendUrl + "/login"))
                 .build();
     }
 
